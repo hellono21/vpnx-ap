@@ -1,0 +1,5 @@
+#!/bin/sh -e
+
+ip route add $PPP_REMOTE/32 dev $PPP_IFACE table eth_net
+
+exit 0

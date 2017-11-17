@@ -1,0 +1,56 @@
+version: "2"
+services:
+  haproxy:
+    build: ./haproxy
+    image: vpnx-haproxy
+    restart: always
+    links:
+      - 3proxy-ap:ap
+    ports:
+      - "101.200.209.250:443:443/tcp"
+  vpn-ap:
+    image: jk9903/tinyvpn-ap
+    restart: always
+    env_file:
+      - ./vpn-ap/vpn.env.example
+    ports:
+      - "101.200.209.250:500:500/udp"
+      - "101.200.209.250:4500:4500/udp"
+    privileged: true
+    hostname: vpn-ap
+    container_name: vpn-ap
+    links: 
+      - chinadns
+    volumes:
+      - /lib/modules:/lib/modules:ro
+    environment:
+      - TUNNEL_HOST=udp2raw
+      - TUNNEL_PORT=443
+  chinadns:
+    build: ./chinadns
+    image: chinadns
+    restart: always
+    privileged: true
+    environment:
+      - TUNNEL_HOST=udp2raw
+      - TUNNEL_PORT=443
+      - XTUN_PSK=xtun
+      - XTUN_NET=10.222.0.2/24
+  3proxy-ap:
+    build: ./3proxy-ap/
+    image: 3proxy-ap
+    privileged: true
+    links: 
+      - chinadns
+    environment:
+      - TUNNEL_HOST=udp2raw
+      - TUNNEL_PORT=443
+      - XTUN_PSK=xtun
+      - XTUN_NET=10.222.0.3/24
+  udp2raw:
+    build: ./udp2raw/
+    image: udp2raw
+    privileged: true
+    environment:
+      - TUNNEL_HOST=45.76.153.171
+      - TUNNEL_PORT=443

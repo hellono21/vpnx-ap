@@ -1,0 +1,31 @@
+#!/usr/bin/with-contenv sh
+
+check_ip() {
+  IP_REGEX='^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
+  printf '%s' "$1" | tr -d '\n' | grep -Eq "$IP_REGEX"
+}
+
+[ -z "$VPN_DNS_SRV1" ] && VPN_DNS_SRV1=$(dig -t A -4 chinadns +short)
+check_ip "$VPN_DNS_SRV1" || VPN_DNS_SRV1="8.8.8.8"
+
+DNS_SRV1=${VPN_DNS_SRV1:-'8.8.8.8'}
+DNS_SRV2=${VPN_DNS_SRV2:-'8.8.4.4'}
+
+mkdir -p /usr/local/etc/3proxy
+cat > /usr/local/etc/3proxy/3proxy.cfg <<EOF
+config /usr/local/etc/3proxy/3proxy.cfg
+nserver $DNS_SRV1
+nserver $DNS_SRV2
+
+nscache 3600
+timeouts 1 5 30 60 180 1800 15 60
+
+log /var/log/3proxy.log
+logformat "- +_L%t.%.  %N.%p %E %U %C:%c %R:%r %O %I %h %T"
+
+auth none
+ 
+proxy -n -a -p3128
+EOF
+
+/usr/local/bin/3proxy /usr/local/etc/3proxy/3proxy.cfg
